@@ -100,13 +100,21 @@ func Analyze(s *store.Store, latticeID string) ([]*model.ErrorChain, error) {
 
 func longestConsecutiveRun(nodes []chainNode) int {
 	seen := make(map[int]bool)
-	for _, n := range nodes { seen[n.round] = true }
+	for _, n := range nodes {
+		seen[n.round] = true
+	}
 	best := 0
 	for _, n := range nodes {
-		if seen[n.round-1] { continue }
+		if seen[n.round-1] {
+			continue
+		}
 		run := 1
-		for seen[n.round+run] { run++ }
-		if run > best { best = run }
+		for seen[n.round+run] {
+			run++
+		}
+		if run > best {
+			best = run
+		}
 	}
 	return best
 }
