@@ -32,8 +32,8 @@ func (s *Store) IngestSyndrome(roundID, latticeID string, roundNo int, qubitID, 
 	err = row.Scan(&existing.ID, &existing.RoundID, &existing.LatticeID, &existing.RoundNo, &existing.QubitID, &existing.Stabilizer, &existing.RawValue, &st, &existing.CreatedAt)
 	if err == nil {
 		existing.Status = model.SyndromeStatus(st)
-		// 标记为重复，保持幂等
-		_, _ = s.DB.Exec(`UPDATE syndromes SET status=?, raw_value=? WHERE id=?`, string(model.SynDuplicate), rawValue, existing.ID)
+		// 标记为重复，保持幂等；保留首次采集的 raw_value 作为原始证据，不被重试覆盖。
+		_, _ = s.DB.Exec(`UPDATE syndromes SET status=? WHERE id=?`, string(model.SynDuplicate), existing.ID)
 		existing.Status = model.SynDuplicate
 		return &existing, nil
 	}
