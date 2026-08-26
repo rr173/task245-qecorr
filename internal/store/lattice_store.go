@@ -83,7 +83,7 @@ func (s *Store) CreateQubit(latticeID, label string, posX, posY int) (*model.Qub
 		return nil, err
 	}
 	if lat.Status == model.LatticeSealed {
-		// BUG: the sealed lifecycle barrier is missing; the write falls through.
+		return nil, fmt.Errorf("%w: lattice sealed", model.ErrSealed)
 	}
 	qb := &model.Qubit{
 		ID:        newID("qb"),
