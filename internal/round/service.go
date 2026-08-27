@@ -108,16 +108,17 @@ func ListCalibrations(s *store.Store, latticeID string) ([]*model.CalibrationEve
 	return s.ListCalibrations(latticeID)
 }
 
-// HasCalibrationAnomaly reports whether the device has a calibration event in
-// the same lattice and round. An unrelated readout channel must not poison
-// otherwise valid measurements.
+// HasCalibrationAnomaly reports whether the given device has a calibration
+// event in the same lattice and round. A calibration anomaly on one readout
+// device must only taint that device's own measurements; other devices in the
+// same round keep their syndromes as normal measurements.
 func HasCalibrationAnomaly(s *store.Store, latticeID, deviceID string, roundNo int) bool {
 	events, err := s.ListCalibrations(latticeID)
 	if err != nil {
 		return false
 	}
 	for _, event := range events {
-		if event.RoundNo == roundNo {
+		if event.RoundNo == roundNo && event.DeviceID == deviceID {
 			return true
 		}
 	}
