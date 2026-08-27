@@ -35,14 +35,20 @@ func (s *Store) CreateSnapshot(latticeID string, baselineRound int, evidenceJSON
 }
 
 // PublishSnapshot is a compare-and-set transition so two callers cannot both
-// publish the same draft.
+// publish the same draft. The UPDATE is guarded on status=draft so that only
+// the first publisher matches a row; every concurrent or later caller matches
+// zero rows and fails. This is authoritative at the DB layer and immune to the
+// read-then-write race in the application layer.
 func (s *Store) PublishSnapshot(id string) error {
-	const q = `UPDATE snapshots SET status=? WHERE id=?`
-	res, err := s.DB.Exec(q, string(model.SnapPublished), id)
+	const q = `UPDATE snapshots SET status=? WHERE id=? AND status=?`
+	res, err := s.DB.Exec(q, string(model.SnapPublished), id, string(model.SnapDraft))
 	if err != nil {
 		return fmt.Errorf("publish snapshot: %w", err)
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
+		// Either the snapshot does not exist, or it is no longer a draft
+		// (already published / superseded). Distinguish the two so callers
+		// get a precise error instead of a silent state overwrite.
 		if _, err := s.GetSnapshot(id); err != nil {
 			return err
 		}

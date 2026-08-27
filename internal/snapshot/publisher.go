@@ -36,14 +36,14 @@ func Draft(s *store.Store, latticeID string, baselineRound int) (*model.Decoding
 
 // Publish atomically changes a draft to published. A published snapshot is
 // immutable; callers must create a new draft for a revised decoder result.
+//
+// The atomicity lives in Store.PublishSnapshot, whose UPDATE is guarded on
+// status=draft. We deliberately do NOT pre-check the status here and then
+// publish: that read-then-write would let two concurrent decoders each see
+// the snapshot as draft and both report success, and a straggler could even
+// re-publish a snapshot that has since been superseded. Only the first
+// publisher wins at the DB layer; everyone else fails with ErrInvalidState.
 func Publish(s *store.Store, id string) error {
-	snap, err := s.GetSnapshot(id)
-	if err != nil {
-		return err
-	}
-	if snap.Status != model.SnapDraft {
-		return fmt.Errorf("%w: snapshot %s is %s", model.ErrInvalidState, id, snap.Status)
-	}
 	return s.PublishSnapshot(id)
 }
 
