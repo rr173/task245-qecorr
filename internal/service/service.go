@@ -80,7 +80,10 @@ type SyndromeResult struct {
 }
 
 // BatchIngest keeps one result per input and continues after an item-level
-// error, so a device can retry only the failed measurements.
+// error, so a device can retry only the failed measurements. Each input is
+// attempted independently: a failure at one position (e.g. an unknown qubit)
+// never aborts the surrounding items, and every position in the result slice
+// reports its own success or error.
 func (s *Service) BatchIngest(roundID string, inputs []SyndromeInput) []SyndromeResult {
 	results := make([]SyndromeResult, len(inputs))
 	for i, input := range inputs {
@@ -88,7 +91,7 @@ func (s *Service) BatchIngest(roundID string, inputs []SyndromeInput) []Syndrome
 		syn, err := s.Ingest(roundID, input.QubitID, input.Stabilizer, input.RawValue)
 		if err != nil {
 			results[i].Error = err.Error()
-			return results
+			continue
 		}
 		results[i].Syndrome = syn
 	}
