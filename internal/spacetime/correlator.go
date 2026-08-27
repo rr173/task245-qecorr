@@ -53,7 +53,12 @@ func Build(s *store.Store, latticeID string) ([]*model.ErrorChain, error) {
 					return nil, err
 				}
 			}
-			if b.RoundNo-a.RoundNo >= 1 && a.QubitID == b.QubitID {
+			// 时空边只连接严格相邻轮次（round 差恰为 1）中同一量子比特的缺陷，
+			// 以遵守轮次连续性：跨过中间轮次的缺陷不得视为连续传播链。
+			// 例如第 1、3 轮有缺陷而第 2 轮无对应测量时，二者必须保持分离，
+			// 不能并成同一条错误链。差为 1 时两端均已被测量（缺陷即测量结果），
+			// 故传播合法；差 ≥ 2 说明中间轮次缺失或未测量，须断开。
+			if b.RoundNo-a.RoundNo == 1 && a.QubitID == b.QubitID {
 				if _, err := s.CreateDefectEdge(latticeID, a.RoundNo, a.QubitID, b.RoundNo, b.QubitID, 1.25); err != nil {
 					return nil, err
 				}
